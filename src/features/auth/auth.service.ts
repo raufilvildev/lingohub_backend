@@ -1,16 +1,19 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { UsersRepository } from '../users/users.repository';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
+    private usersRepository: UsersRepository,
     private jwtService: JwtService,
   ) {}
 
   async login(loginUser: any): Promise<any> {
-    const user: any = this.usersService.getUserByUsername(loginUser.username);
+    const user: any = this.usersRepository.selectUserByUsername(
+      loginUser.username,
+    );
 
     if (!user) {
       throw new UnauthorizedException('Credenciales incorrectas.');
