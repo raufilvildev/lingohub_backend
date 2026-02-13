@@ -24,6 +24,24 @@ model User {
   img_url String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  
+  sessions UserSession[]
 
   @@map("users")
+}
+
+model UserSession {
+  id Int @default(autoincrement()) @id
+  user_id Int
+  refresh_token String?
+  device_info String
+  ip String
+  expires_at DateTime?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  revoked_at DateTime?
+  
+  user User @relation(fields: [user_id], references: [id])
+  
+  @@map("user_sessions")
 }

@@ -31,7 +31,7 @@ export class UsersService {
     return new UserResponse(user);
   }
 
-  async signup(signupUser: SignupUser, response: Response): Promise<Token> {
+  async signup(signupUser: SignupUser, response: Response): Promise<void> {
     let user: User | null = await this.usersRepository.selectUserByEmail(
       signupUser.email,
     );
@@ -49,13 +49,12 @@ export class UsersService {
     try {
       signupUser.password = await bcrypt.hash(
         signupUser.password,
-        parseInt(process.env.BCRYPT_SALT_ROUNDS ?? '10'),
+        Number(process.env.BCRYPT_SALT_ROUNDS),
       );
       const user: User = await this.usersRepository.insertUser(signupUser);
 
-      return this.authService.create_access_and_refresh_tokens(
-        user.id,
-        user.username,
+      this.authService.create_access_and_refresh_tokens(
+        { sub: user.id, username: user.username },
         response,
       );
     } catch (error) {
