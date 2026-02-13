@@ -6,21 +6,24 @@ import {
 import { AuthService } from './auth.service';
 import { User } from 'generated/prisma/client';
 import { Request, Response } from 'express';
+import { UserResponse } from '../users/dto/user-response.dto';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
   constructor(private authService: AuthService) {}
   async use(request: Request, response: Response, next: () => void) {
-    const access_token: string = request.headers['authorization'] ?? '';
+    let user: User | null = await this.authService.validateAccessToken(request);
 
-    if (!access_token)
-      throw new UnauthorizedException('Cabecera Authorization vacía.');
+    if (user) {
+      request.user = new UserResponse(user);
+      return next();
+    }
 
-    try {
-      const payload: User = await this.authService.validate(access_token);
-      request.user = payload;
-      next();
-    } catch (error) {}
+    await this.authService.refresh(request, response);
+
+    user = (await this.authService.validateAccessToken(request)) as User;
+
+    request.user = new UserResponse(user);
     next();
   }
 }

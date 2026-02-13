@@ -14,7 +14,9 @@ export class SignupUser {
 
   @IsString({ message: 'last_name debe ser string.' })
   @MinLength(3, { message: 'last_name debe tener al menos 3 caracteres.' })
-  @MaxLength(255, { message: 'email no puede tener más de 255 caracteres.' })
+  @MaxLength(255, {
+    message: 'last_name no puede tener más de 255 caracteres.',
+  })
   last_name: string;
 
   @IsString({ message: 'email debe ser string.' })
@@ -33,7 +35,7 @@ export class SignupUser {
   @IsString({ message: 'password debe ser string.' })
   @MinLength(8, { message: 'password debe tener al menos 8 caracteres.' })
   @MaxLength(100, { message: 'password no puede tener más de 100 caracteres.' })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])$/, {
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/, {
     message:
       'password debe incluir una letra mayúscula, una letra minúscula, un número y un carácter especial.',
   })

@@ -15,16 +15,14 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.authService.login(loginUser, request, response);
-    response.send();
   }
 
   @Post('logout')
   @HttpCode(204)
-  logout(
+  async logout(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
-  ): void {
-    this.authService.logout(request, response);
-    response.send();
+  ): Promise<void> {
+    await this.authService.logout(request, response);
   }
 }

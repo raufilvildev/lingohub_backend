@@ -6,6 +6,7 @@ import { PrismaService } from 'src/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { AuthMiddleware } from '../auth/auth.middleware';
+import { AuthRepository } from '../auth/auth.repository';
 
 @Module({
   controllers: [UsersController],
@@ -14,6 +15,7 @@ import { AuthMiddleware } from '../auth/auth.middleware';
     UsersRepository,
     PrismaService,
     AuthService,
+    AuthRepository,
     JwtService,
   ],
 })
