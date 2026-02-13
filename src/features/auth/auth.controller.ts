@@ -8,12 +8,14 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
+  @HttpCode(204)
   async login(
     @Body() loginUser: LoginUser,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<void> {
     await this.authService.login(loginUser, request, response);
+    response.send();
   }
 
   @Post('logout')

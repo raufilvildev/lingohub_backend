@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Post,
   Put,
   Req,
@@ -13,7 +14,7 @@ import { SignupUser } from './dto/signup-user.dto';
 import { UpdateUser } from './dto/update-user.dto';
 import { UserResponse } from './dto/user-response.dto';
 import { Token } from '../auth/dto/token.dto';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 @Controller('users')
 export class UsersController {
@@ -25,26 +26,36 @@ export class UsersController {
   }
 
   @Post('signup')
+  @HttpCode(204)
   async signup(
     @Body() signupUser: SignupUser,
-    @Res({ passthrough: true }) response,
-  ): Promise<Token> {
-    return await this.usersService.signup(signupUser, response);
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.usersService.signup(signupUser, request, response);
+    response.send();
   }
 
   @Put('update')
+  @HttpCode(204)
   async update(
     @Req() request: Request,
     @Body() updateUser: UpdateUser,
-  ): Promise<any> {
-    return await this.usersService.update(
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.usersService.update(
       (request.user as UserResponse).id,
       updateUser,
     );
+    response.send();
   }
 
   @Delete('delete')
-  async delete(@Req() request: Request): Promise<any> {
-    return await this.usersService.delete((request.user as UserResponse).id);
+  async delete(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    await this.usersService.delete((request.user as UserResponse).id);
+    response.send();
   }
 }

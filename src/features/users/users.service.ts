@@ -11,8 +11,7 @@ import { User } from 'generated/prisma/client';
 import { UserResponse } from './dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth/auth.service';
-import { Response } from 'express';
-import { Token } from '../auth/dto/token.dto';
+import { Request, Response } from 'express';
 
 @Injectable()
 export class UsersService {
@@ -31,7 +30,11 @@ export class UsersService {
     return new UserResponse(user);
   }
 
-  async signup(signupUser: SignupUser, response: Response): Promise<void> {
+  async signup(
+    signupUser: SignupUser,
+    request: Request,
+    response: Response,
+  ): Promise<void> {
     let user: User | null = await this.usersRepository.selectUserByEmail(
       signupUser.email,
     );
@@ -53,8 +56,9 @@ export class UsersService {
       );
       const user: User = await this.usersRepository.insertUser(signupUser);
 
-      this.authService.create_access_and_refresh_tokens(
-        { sub: user.id, username: user.username },
+      await this.authService.createAccessAndRefreshTokens(
+        user.id,
+        request,
         response,
       );
     } catch (error) {
@@ -64,7 +68,7 @@ export class UsersService {
     }
   }
 
-  async update(id: number, updateUser: UpdateUser): Promise<any> {
+  async update(id: number, updateUser: UpdateUser): Promise<void> {
     let user: User | null = await this.usersRepository.selectUserByEmail(
       updateUser.email,
     );
@@ -80,10 +84,7 @@ export class UsersService {
     }
 
     try {
-      const user: User = await this.usersRepository.updateUserById(
-        id,
-        updateUser,
-      );
+      await this.usersRepository.updateUserById(id, updateUser);
     } catch (error) {
       throw new InternalServerErrorException(
         'Ha ocurrido un error inesperado. Vuelve a intentarlo más tarde.',
@@ -91,7 +92,13 @@ export class UsersService {
     }
   }
 
-  async delete(id: number): Promise<any> {
-    return await this.usersRepository.deleteUserById(id);
+  async delete(id: number): Promise<void> {
+    try {
+      await this.usersRepository.deleteUserById(id);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Ha ocurrido un error inesperado. Vuelve a intentarlo más tarde.',
+      );
+    }
   }
 }
