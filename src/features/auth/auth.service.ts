@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { User, UserSession } from 'generated/prisma/client';
 import type { Request, Response } from 'express';
 import { AuthRepository } from './auth.repository';
-import { getDeviceInfo, getIp } from 'src/utils/request-context';
+import { getDeviceInfo } from 'src/utils/request-context';
 
 @Injectable()
 export class AuthService {
@@ -92,55 +92,6 @@ export class AuthService {
     await this.authRepository.revokeRefreshToken(userSession.id);
   }
 
-  async createAccessAndRefreshTokens(
-    user_id: number,
-    request: Request,
-    response: Response,
-  ): Promise<void> {
-    // --------------------------------------------------
-    //  1. Creamos access_token.
-    //  2. Creamos sesión en base de datos.
-    //  3. Creamos refresh_token y actualizamos la sesión en base de datos.
-    // --------------------------------------------------
-
-    await this.createToken(
-      response,
-      { sub: user_id },
-      'access_token',
-      Number(process.env.ACCESS_TOKEN_EXPIRED_SECONDS),
-    );
-
-    const session: UserSession = await this.authRepository.insertSession(
-      user_id,
-      getDeviceInfo(request),
-      getIp(request),
-    );
-
-    const refreshPayload: JwtRefreshPayload = {
-      sub: user_id,
-      sessionId: session.id,
-    };
-    let refresh_token: string = await this.createToken(
-      response,
-      refreshPayload,
-      'refresh_token',
-      Number(process.env.REFRESH_TOKEN_EXPIRED_SECONDS),
-    );
-
-    refresh_token = await bcrypt.hash(
-      refresh_token,
-      Number(process.env.BCRYPT_SALT_ROUNDS),
-    );
-    const expires_at: Date = new Date(
-      Date.now() + Number(process.env.REFRESH_TOKEN_EXPIRED_SECONDS) * 1000,
-    );
-    await this.authRepository.updateSessionWithRefreshToken(
-      refreshPayload.sessionId,
-      refresh_token,
-      expires_at,
-    );
-  }
-
   async createToken(
     response: Response,
     payload: JwtAccessPayload | JwtRefreshPayload,
@@ -169,6 +120,98 @@ export class AuthService {
     });
 
     return token;
+  }
+
+  async createAccessAndRefreshTokens(
+    user_id: number,
+    request: Request,
+    response: Response,
+  ): Promise<void> {
+    // --------------------------------------------------
+    //  1. Creamos access_token.
+    //  2. Creamos sesión en base de datos.
+    //  3. Creamos refresh_token y actualizamos la sesión en base de datos.
+    // --------------------------------------------------
+
+    await this.createToken(
+      response,
+      { sub: user_id },
+      'access_token',
+      Number(process.env.ACCESS_TOKEN_EXPIRED_SECONDS),
+    );
+
+    const session: UserSession = await this.authRepository.insertSession(
+      user_id,
+      getDeviceInfo(request),
+      request.ip || '',
+    );
+
+    const refreshPayload: JwtRefreshPayload = {
+      sub: user_id,
+      sessionId: session.id,
+    };
+    let refresh_token: string = await this.createToken(
+      response,
+      refreshPayload,
+      'refresh_token',
+      Number(process.env.REFRESH_TOKEN_EXPIRED_SECONDS),
+    );
+
+    refresh_token = await bcrypt.hash(
+      refresh_token,
+      Number(process.env.BCRYPT_SALT_ROUNDS),
+    );
+    const expires_at: Date = new Date(
+      Date.now() + Number(process.env.REFRESH_TOKEN_EXPIRED_SECONDS) * 1000,
+    );
+    await this.authRepository.updateSessionWithRefreshToken(
+      refreshPayload.sessionId,
+      refresh_token,
+      expires_at,
+    );
+  }
+
+  async createAccessTokenAndUpdateRefreshToken(
+    id: number,
+    user_id: number,
+    response: Response,
+  ): Promise<void> {
+    // --------------------------------------------------
+    //  1. Creamos access_token.
+    //  2. Creamos sesión en base de datos.
+    //  3. Creamos refresh_token y actualizamos la sesión en base de datos.
+    // --------------------------------------------------
+
+    await this.createToken(
+      response,
+      { sub: user_id },
+      'access_token',
+      Number(process.env.ACCESS_TOKEN_EXPIRED_SECONDS),
+    );
+
+    const refreshPayload: JwtRefreshPayload = {
+      sub: user_id,
+      sessionId: id,
+    };
+    let refresh_token: string = await this.createToken(
+      response,
+      refreshPayload,
+      'refresh_token',
+      Number(process.env.REFRESH_TOKEN_EXPIRED_SECONDS),
+    );
+
+    refresh_token = await bcrypt.hash(
+      refresh_token,
+      Number(process.env.BCRYPT_SALT_ROUNDS),
+    );
+    const expires_at: Date = new Date(
+      Date.now() + Number(process.env.REFRESH_TOKEN_EXPIRED_SECONDS) * 1000,
+    );
+    await this.authRepository.updateSessionWithRefreshToken(
+      refreshPayload.sessionId,
+      refresh_token,
+      expires_at,
+    );
   }
 
   clearTokenCookie(response: Response, name: 'access_token' | 'refresh_token') {
@@ -292,9 +335,9 @@ export class AuthService {
       throw new UnauthorizedException('refresh_token inválido.');
     }
 
-    await this.createAccessAndRefreshTokens(
+    await this.createAccessTokenAndUpdateRefreshToken(
+      userSession.id,
       userSession.user_id,
-      request,
       response,
     );
   }

@@ -12,18 +12,27 @@ import { UserResponse } from '../users/dto/user-response.dto';
 export class AuthMiddleware implements NestMiddleware {
   constructor(private authService: AuthService) {}
   async use(request: Request, response: Response, next: () => void) {
-    let user: User | null = await this.authService.validateAccessToken(request);
+    try {
+      let user: User | null =
+        await this.authService.validateAccessToken(request);
 
-    if (user) {
+      if (user) {
+        request.user = new UserResponse(user);
+        return next();
+      }
+
+      await this.authService.refresh(request, response);
+
+      user = await this.authService.validateAccessToken(request);
+
+      if (!user) {
+        throw new UnauthorizedException('refresh_token inválido.');
+      }
+
       request.user = new UserResponse(user);
-      return next();
+      next();
+    } catch (error) {
+      throw error;
     }
-
-    await this.authService.refresh(request, response);
-
-    user = (await this.authService.validateAccessToken(request)) as User;
-
-    request.user = new UserResponse(user);
-    next();
   }
 }
